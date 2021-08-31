@@ -1,57 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using HackVM.Commands;
 
 namespace HackVM
 {
     class Program
     {
         private static Arguments _args;
-        
+
         static void Main(string[] args)
         {
             _args = new Arguments(args);
-        }
-    }
 
-    public class VMCodeParser
-    {
-        private string _filePath;
-        
-        public VMCodeParser(string filePath)
-        {
-            _filePath = filePath;
-        }
-        
-        public IEnumerable<string> CodeListing()
-        {
-            using var file = new StreamReader(_filePath);
-            string line; 
-            while ((line = file.ReadLine()) != null)
-            {
-                var parsedLine = RemoveWhitespace(line);
-                parsedLine = RemoveComments(parsedLine);
-                if(parsedLine.Length != 0)
-                    yield return parsedLine;
-            }
-        }
-        
-        
-        private string RemoveWhitespace(string input)
-        {
-            return new string(input
-                .Where(c => !Char.IsWhiteSpace(c))
-                .ToArray());
+            var factory = new CommandFactory();
+            var codeTranslator = new CodeTranslator();
+            var listing = new VMCodeParser(_args.Path);
+
+            var commands = new List<VMCommand>();
+
+            foreach (var codeline in listing.CodeListing())
+                commands.Add(new VMCommand(codeline));
+
+            OutputByteCode(commands);
         }
 
-        private string RemoveComments(string line)
+        private static void OutputByteCode(List<VMCommand> commands)
         {
-            var commentSymbol = "//";
-            var firstOccurence = line.IndexOf(commentSymbol, StringComparison.Ordinal);
-            if (firstOccurence == -1)
-                return line;
-            return line.Substring(0, firstOccurence);
+            var directoryName = Path.GetDirectoryName(_args.Path);
+            var listingFileName = Path.GetFileNameWithoutExtension(_args.Path);
+            var outputFile = Path.Combine(directoryName, listingFileName) + ".asm";
+
+            var translator = new CodeTranslator();
+            if (File.Exists(outputFile))
+                File.Delete(outputFile);
+            foreach (var command in commands)
+                File.AppendAllText(outputFile, translator.TranslateCommand(command));
+
+            Console.WriteLine($"Saved asm code at: {outputFile}");
         }
     }
 }
