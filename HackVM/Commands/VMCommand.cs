@@ -2,19 +2,23 @@
 {
     public class VMCommand
     {
-        public VMCommand(string codeLine)
+        public VMCommand(string codeLine, string fileName)
         {
             var lineParts = codeLine.Split(' ');
             CommandType = ParseType(lineParts);
             Command = ParseCommand(lineParts);
             Arg1 = ParseFirstArg(lineParts);
             Arg2 = ParseSecondArg(lineParts);
+
+            FileName = fileName;
         }
 
         public CommandType CommandType { get; }
         public string Command { get; }
         public string Arg1 { get; }
         public string Arg2 { get; }
+        public string FileName { get; }
+
 
         private CommandType ParseType(string[] codeLine)
         {

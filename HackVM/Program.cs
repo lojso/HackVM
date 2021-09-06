@@ -12,15 +12,12 @@ namespace HackVM
         static void Main(string[] args)
         {
             _args = new Arguments(args);
-
-            var factory = new CommandFactory();
-            var codeTranslator = new CodeTranslator();
             var listing = new VMCodeParser(_args.Path);
 
             var commands = new List<VMCommand>();
 
             foreach (var codeline in listing.CodeListing())
-                commands.Add(new VMCommand(codeline));
+                commands.Add(new VMCommand(codeline, listing.FileName));
 
             OutputByteCode(commands);
         }
