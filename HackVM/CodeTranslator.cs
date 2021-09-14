@@ -32,6 +32,8 @@ namespace HackVM
                 return ArgumentPush(command);
             if (command.Arg1.Equals("temp"))
                 return TempPush(command);
+            if (command.Arg1.Equals("pointer"))
+                return PointerPush(command);
             if (command.Arg1.Equals("constant"))
                 return ConstantPush(command);
             if (command.Arg1.Equals("static"))
@@ -53,9 +55,25 @@ namespace HackVM
                 return TempPop(command);
             if (command.Arg1.Equals("static"))
                 return StaticPop(command);
+            if (command.Arg1.Equals("pointer"))
+                return PointerPop(command);
             return "";
         }
 
+        private string PointerPop(VMCommand command)
+        {
+            var baseAddress = command.Arg2.Equals("0") ? "@THIS" : "@THAT";
+            return $"{baseAddress}{_newLine}" +
+                   $"D=A{_newLine}" +
+                   $"@R13{_newLine}" +
+                   $"M=D{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"AM=M-1{_newLine}" +
+                   $"D=M{_newLine}" +
+                   $"@R13{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=D{_newLine}";
+        }
 
         private string LocalPop(VMCommand command) =>
             SegmentPop(command, "@LCL");
@@ -93,9 +111,8 @@ namespace HackVM
             $"D=A{_newLine}" +
             $"@R13{_newLine}" +
             $"M=D{_newLine}" +
-            StackDecrement() +
             $"@SP{_newLine}" +
-            $"A=M{_newLine}" +
+            $"AM=M-1{_newLine}" +
             $"D=M{_newLine}" +
             $"@R13{_newLine}" +
             $"A=M{_newLine}" +
@@ -132,6 +149,18 @@ namespace HackVM
             $"A=M{_newLine}" +
             $"M=D{_newLine}" +
             StackIncrement();
+
+        private string PointerPush(VMCommand command)
+        {
+            var baseAddress = command.Arg2.Equals("0") ? "@THIS" : "@THAT";
+            return $"{baseAddress}{_newLine}" +
+                   $"D=M{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=D{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"M=M+1{_newLine}";
+        }
 
         private string PushFromSegment(VMCommand command, string segmentBase) =>
             $"@{command.Arg2}{_newLine}" +
