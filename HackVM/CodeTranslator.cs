@@ -129,7 +129,8 @@ namespace HackVM
             $"D=A{_newLine}" +
             $"@R13{_newLine}" +
             $"M=D{_newLine}" +
-            StackDecrement() +
+            $"@SP{_newLine}" +
+            $"M=M-1{_newLine}" +
             $"@SP{_newLine}" +
             $"A=M{_newLine}" +
             $"D=M{_newLine}" +
@@ -226,39 +227,45 @@ namespace HackVM
 
 
         private string TranslateAdd() =>
-            $"@SP{_newLine}" +
-            $"AM=M-1{_newLine}" +
-            $"D=M{_newLine}" +
-            $"A=A-1{_newLine}" +
-            $"M=M+D{_newLine}";
+            TranslateTwoOperand("+");
 
         private string TranslateSub() =>
-            $"@SP{_newLine}" +
-            $"AM=M-1{_newLine}" +
-            $"D=M{_newLine}" +
-            $"A=A-1{_newLine}" +
-            $"M=M-D{_newLine}";
-
-        private string TranslateNot() =>
-            $"@SP{_newLine}" +
-            $"A=M-1{_newLine}" +
-            $"M=!M{_newLine}";
+            TranslateTwoOperand("-");
 
         private string TranslateAnd() =>
-            $"@SP{_newLine}" +
-            $"AM=M-1{_newLine}" +
-            $"D=M{_newLine}" +
-            $"A=A-1{_newLine}" +
-            $"M=M&D{_newLine}";
+            TranslateTwoOperand("&");
 
         private string TranslateOr() =>
+            TranslateTwoOperand("|");
+
+        private string TranslateEq() =>
+            TranslateComparison("JEQ");
+
+        private string TranslateGt() =>
+            TranslateComparison("JLT");
+
+        private string TranslateLt() =>
+            TranslateComparison("JGT");
+
+        private string TranslateNot() =>
+            TranslateSingleOperand("!");
+
+        private string TranslateNeg() =>
+            TranslateSingleOperand("-");
+
+        private string TranslateSingleOperand(string operand) =>
+            $"@SP{_newLine}" +
+            $"A=M-1{_newLine}" +
+            $"M={operand}M{_newLine}";
+
+        private string TranslateTwoOperand(string operand) =>
             $"@SP{_newLine}" +
             $"AM=M-1{_newLine}" +
             $"D=M{_newLine}" +
             $"A=A-1{_newLine}" +
-            $"M=M|D{_newLine}";
+            $"M=M{operand}D{_newLine}";
 
-        private string TranslateEq()
+        private string TranslateComparison(string comparison)
         {
             var branchNumber = _branchCounter++;
             return $"@SP{_newLine}" +
@@ -268,7 +275,7 @@ namespace HackVM
                    $"AM=M-1{_newLine}" +
                    $"D=D-M{_newLine}" +
                    $"@TRUE{branchNumber}{_newLine}" +
-                   $"D;JEQ{_newLine}" +
+                   $"D;{comparison}{_newLine}" +
                    $"@SP{_newLine}" +
                    $"A=M{_newLine}" +
                    $"M=0{_newLine}" +
@@ -282,69 +289,9 @@ namespace HackVM
                    $"@SP{_newLine}" +
                    $"M=M+1{_newLine}";
         }
-
-        private string TranslateGt()
-        {
-            var branchNumber = _branchCounter++;
-            return $"@SP{_newLine}" +
-                   $"AM=M-1{_newLine}" +
-                   $"D=M{_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"AM=M-1{_newLine}" +
-                   $"D=D-M{_newLine}" +
-                   $"@TRUE{branchNumber}{_newLine}" +
-                   $"D;JLT{_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"A=M{_newLine}" +
-                   $"M=0{_newLine}" +
-                   $"@EXIT{branchNumber}{_newLine}" +
-                   $"0;JMP{_newLine}" +
-                   $"(TRUE{branchNumber}){_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"A=M{_newLine}" +
-                   $"M=-1{_newLine}" +
-                   $"(EXIT{branchNumber}){_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"M=M+1{_newLine}";
-        }
-
-        private string TranslateLt()
-        {
-            var branchNumber = _branchCounter++;
-            return $"@SP{_newLine}" +
-                   $"AM=M-1{_newLine}" +
-                   $"D=M{_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"AM=M-1{_newLine}" +
-                   $"D=D-M{_newLine}" +
-                   $"@TRUE{branchNumber}{_newLine}" +
-                   $"D;JGT{_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"A=M{_newLine}" +
-                   $"M=0{_newLine}" +
-                   $"@EXIT{branchNumber}{_newLine}" +
-                   $"0;JMP{_newLine}" +
-                   $"(TRUE{branchNumber}){_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"A=M{_newLine}" +
-                   $"M=-1{_newLine}" +
-                   $"(EXIT{branchNumber}){_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"M=M+1{_newLine}";
-        }
-
-        private string TranslateNeg() =>
-            $"@SP{_newLine}" +
-            $"A=M-1{_newLine}" +
-            $"M=-M{_newLine}";
-
 
         private string StackIncrement() =>
             $"@SP{_newLine}" +
             $"M=M+1{_newLine}";
-
-        private string StackDecrement() =>
-            $"@SP{_newLine}" +
-            $"M=M-1{_newLine}";
     }
 }
