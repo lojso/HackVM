@@ -8,14 +8,6 @@ namespace HackVM
 {
     public class CodeTranslator
     {
-        private readonly Dictionary<string, string> _arithmeticOperations = new Dictionary<string, string>()
-        {
-            {"add", "+"},
-            {"sub", "-"},
-            {"or", "|"},
-            {"and", "&"},
-        };
-
         private readonly string _newLine = Environment.NewLine;
 
         private int _branchCounter = 0;
@@ -174,28 +166,31 @@ namespace HackVM
         private string ThisPush(VMCommand command) =>
             PushFromSegment(command, "@THIS");
 
+        private string PointerPush(VMCommand command)
+        {
+            var baseAddress = command.Arg2.Equals("0") ? "@THIS" : "@THAT";
+            return $"{baseAddress}{_newLine}" +
+                   $"D=M{_newLine}" +
+                   WriteToStackEnd();
+        }
+
+        private string StaticPush(VMCommand command) =>
+            $"@{command.FileName}.{command.Arg2}{_newLine}" +
+            $"D=M{_newLine}" +
+            WriteToStackEnd();
+
+        private string ConstantPush(VMCommand command) =>
+            $"@{command.Arg2}{_newLine}" +
+            $"D=A{_newLine}" +
+            WriteToStackEnd();
+
         private string TempPush(VMCommand command) =>
             $"@{command.Arg2}{_newLine}" +
             $"D=A{_newLine}" +
             $"@R5{_newLine}" +
             $"A=A+D{_newLine}" +
             $"D=M{_newLine}" +
-            $"@SP{_newLine}" +
-            $"A=M{_newLine}" +
-            $"M=D{_newLine}" +
-            StackIncrement();
-
-        private string PointerPush(VMCommand command)
-        {
-            var baseAddress = command.Arg2.Equals("0") ? "@THIS" : "@THAT";
-            return $"{baseAddress}{_newLine}" +
-                   $"D=M{_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"A=M{_newLine}" +
-                   $"M=D{_newLine}" +
-                   $"@SP{_newLine}" +
-                   $"M=M+1{_newLine}";
-        }
+            WriteToStackEnd();
 
         private string PushFromSegment(VMCommand command, string segmentBase) =>
             $"@{command.Arg2}{_newLine}" +
@@ -203,27 +198,14 @@ namespace HackVM
             $"{segmentBase}{_newLine}" +
             $"A=M+D{_newLine}" +
             $"D=M{_newLine}" +
-            $"@SP{_newLine}" +
-            $"A=M{_newLine}" +
-            $"M=D{_newLine}" +
-            StackIncrement();
+            WriteToStackEnd();
 
-        private string StaticPush(VMCommand command) =>
-            $"@{command.FileName}.{command.Arg2}{_newLine}" +
-            $"D=M{_newLine}" +
+        private string WriteToStackEnd() =>
             $"@SP{_newLine}" +
             $"A=M{_newLine}" +
             $"M=D{_newLine}" +
             $"@SP{_newLine}" +
             $"M=M+1{_newLine}";
-
-        private string ConstantPush(VMCommand command) =>
-            $"@{command.Arg2}{_newLine}" +
-            $"D=A{_newLine}" +
-            $"@SP{_newLine}" +
-            $"A=M{_newLine}" +
-            $"M=D{_newLine}" +
-            StackIncrement();
 
 
         private string TranslateAdd() =>
@@ -289,9 +271,5 @@ namespace HackVM
                    $"@SP{_newLine}" +
                    $"M=M+1{_newLine}";
         }
-
-        private string StackIncrement() =>
-            $"@SP{_newLine}" +
-            $"M=M+1{_newLine}";
     }
 }
