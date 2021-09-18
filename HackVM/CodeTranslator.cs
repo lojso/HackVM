@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection.Metadata.Ecma335;
 using HackVM.Commands;
@@ -7,7 +8,17 @@ namespace HackVM
 {
     public class CodeTranslator
     {
+        private readonly Dictionary<string, string> _arithmeticOperations = new Dictionary<string, string>()
+        {
+            {"add", "+"},
+            {"sub", "-"},
+            {"or", "|"},
+            {"and", "&"},
+        };
+
         private readonly string _newLine = Environment.NewLine;
+
+        private int _branchCounter = 0;
 
         public string TranslateCommand(VMCommand command)
         {
@@ -57,7 +68,30 @@ namespace HackVM
                 return StaticPop(command);
             if (command.Arg1.Equals("pointer"))
                 return PointerPop(command);
-            return "";
+            throw new InvalidEnumArgumentException($"Cant translate command {command}");
+        }
+
+        private string TranslateArithmetics(VMCommand command)
+        {
+            if (command.Command.Equals("add"))
+                return TranslateAdd();
+            if (command.Command.Equals("sub"))
+                return TranslateSub();
+            if (command.Command.Equals("neg"))
+                return TranslateNeg();
+            if (command.Command.Equals("eq"))
+                return TranslateEq();
+            if (command.Command.Equals("gt"))
+                return TranslateGt();
+            if (command.Command.Equals("lt"))
+                return TranslateLt();
+            if (command.Command.Equals("and"))
+                return TranslateAnd();
+            if (command.Command.Equals("or"))
+                return TranslateOr();
+            if (command.Command.Equals("not"))
+                return TranslateNot();
+            throw new InvalidEnumArgumentException($"Cant translate command {command}");
         }
 
         private string PointerPop(VMCommand command)
@@ -190,15 +224,120 @@ namespace HackVM
             $"M=D{_newLine}" +
             StackIncrement();
 
-        private string TranslateArithmetics(VMCommand command)
+
+        private string TranslateAdd() =>
+            $"@SP{_newLine}" +
+            $"AM=M-1{_newLine}" +
+            $"D=M{_newLine}" +
+            $"A=A-1{_newLine}" +
+            $"M=M+D{_newLine}";
+
+        private string TranslateSub() =>
+            $"@SP{_newLine}" +
+            $"AM=M-1{_newLine}" +
+            $"D=M{_newLine}" +
+            $"A=A-1{_newLine}" +
+            $"M=M-D{_newLine}";
+
+        private string TranslateNot() =>
+            $"@SP{_newLine}" +
+            $"A=M-1{_newLine}" +
+            $"M=!M{_newLine}";
+
+        private string TranslateAnd() =>
+            $"@SP{_newLine}" +
+            $"AM=M-1{_newLine}" +
+            $"D=M{_newLine}" +
+            $"A=A-1{_newLine}" +
+            $"M=M&D{_newLine}";
+
+        private string TranslateOr() =>
+            $"@SP{_newLine}" +
+            $"AM=M-1{_newLine}" +
+            $"D=M{_newLine}" +
+            $"A=A-1{_newLine}" +
+            $"M=M|D{_newLine}";
+
+        private string TranslateEq()
         {
-            var operation = command.Command.Equals("add") ? "+" : "-";
+            var branchNumber = _branchCounter++;
             return $"@SP{_newLine}" +
                    $"AM=M-1{_newLine}" +
                    $"D=M{_newLine}" +
-                   $"A=A-1{_newLine}" +
-                   $"M=M{operation}D{_newLine}";
+                   $"@SP{_newLine}" +
+                   $"AM=M-1{_newLine}" +
+                   $"D=D-M{_newLine}" +
+                   $"@TRUE{branchNumber}{_newLine}" +
+                   $"D;JEQ{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=0{_newLine}" +
+                   $"@EXIT{branchNumber}{_newLine}" +
+                   $"0;JMP{_newLine}" +
+                   $"(TRUE{branchNumber}){_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=-1{_newLine}" +
+                   $"(EXIT{branchNumber}){_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"M=M+1{_newLine}";
         }
+
+        private string TranslateGt()
+        {
+            var branchNumber = _branchCounter++;
+            return $"@SP{_newLine}" +
+                   $"AM=M-1{_newLine}" +
+                   $"D=M{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"AM=M-1{_newLine}" +
+                   $"D=D-M{_newLine}" +
+                   $"@TRUE{branchNumber}{_newLine}" +
+                   $"D;JLT{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=0{_newLine}" +
+                   $"@EXIT{branchNumber}{_newLine}" +
+                   $"0;JMP{_newLine}" +
+                   $"(TRUE{branchNumber}){_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=-1{_newLine}" +
+                   $"(EXIT{branchNumber}){_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"M=M+1{_newLine}";
+        }
+
+        private string TranslateLt()
+        {
+            var branchNumber = _branchCounter++;
+            return $"@SP{_newLine}" +
+                   $"AM=M-1{_newLine}" +
+                   $"D=M{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"AM=M-1{_newLine}" +
+                   $"D=D-M{_newLine}" +
+                   $"@TRUE{branchNumber}{_newLine}" +
+                   $"D;JGT{_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=0{_newLine}" +
+                   $"@EXIT{branchNumber}{_newLine}" +
+                   $"0;JMP{_newLine}" +
+                   $"(TRUE{branchNumber}){_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"A=M{_newLine}" +
+                   $"M=-1{_newLine}" +
+                   $"(EXIT{branchNumber}){_newLine}" +
+                   $"@SP{_newLine}" +
+                   $"M=M+1{_newLine}";
+        }
+
+        private string TranslateNeg() =>
+            $"@SP{_newLine}" +
+            $"A=M-1{_newLine}" +
+            $"M=-M{_newLine}";
+
 
         private string StackIncrement() =>
             $"@SP{_newLine}" +
